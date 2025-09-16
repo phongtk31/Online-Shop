@@ -1,0 +1,9 @@
+spring:
+  profiles:
+    active: dev   # default chạy môi trường dev
+
+app:
+  name: Online Shop API
+  version: 1.0.0
+  contact:
+    email: support@onlineshop.com

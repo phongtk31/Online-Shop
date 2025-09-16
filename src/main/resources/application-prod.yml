@@ -1,0 +1,14 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/onlineshop
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
+
+logging:
+  level:
+    root: WARN
+    com.example.onlineshop: INFO
