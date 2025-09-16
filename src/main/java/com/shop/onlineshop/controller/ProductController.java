@@ -1,68 +1,66 @@
 package com.shop.onlineshop.controller;
 
 import com.shop.onlineshop.dto.ProductDTO;
+import com.shop.onlineshop.exception.ApiResponse;
+import com.shop.onlineshop.exception.ResourceNotFoundException;
 import com.shop.onlineshop.service.ProductService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 
-/**
- * @RestController: đánh dấu lớp xử lý HTTP request, trả JSON.
- * Constructor injection: Spring tự "bơm" (inject) ProductService vào controller.
- */
 @RestController
 @RequestMapping("/products")
 public class ProductController {
 
     private final ProductService productService;
-
-    // Spring sẽ tìm bean ProductService (ProductServiceImpl) và inject vào đây
     public ProductController(ProductService productService) {
         this.productService = productService;
     }
 
-    /** CREATE: POST /products
-     *  @RequestBody: đọc JSON trong body -> map sang ProductDTO
-     *  Trả 201 Created + Location header best practice
-     */
     @PostMapping
-    public ResponseEntity<ProductDTO> create(@RequestBody ProductDTO product) {
+    public ResponseEntity<ApiResponse<ProductDTO>> create(@Valid @RequestBody ProductDTO product) {
         ProductDTO created = productService.createProduct(product);
-        // Location: /products/{id}
         return ResponseEntity
-                .created(URI.create("/products/" + created.getId())) // 201 Created
-                .body(created);
+                .created(URI.create("/products/" + created.getId()))
+                .body(ApiResponse.success("Product created successfully", created));
     }
 
-    /** READ-ALL: GET /products */
     @GetMapping
-    public ResponseEntity<List<ProductDTO>> getAll() {
-        return ResponseEntity.ok(productService.getAllProducts()); // 200 OK
+    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAll() {
+        return ResponseEntity.ok(ApiResponse.success("Product list", productService.getAllProducts()));
     }
 
-    /** READ-ONE: GET /products/{id}
-     *  @PathVariable: lấy {id} từ URL
-     */
     @GetMapping("/{id}")
-    public ResponseEntity<ProductDTO> getById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<ProductDTO>> getById(@PathVariable Long id) {
         ProductDTO product = productService.getProductById(id);
-        return (product != null) ? ResponseEntity.ok(product) : ResponseEntity.notFound().build();
+        if (product == null) {
+            throw new ResourceNotFoundException("Product not found with id " + id);
+        }
+        return ResponseEntity.ok(ApiResponse.success("Product found", product));
     }
 
-    /** UPDATE (full): PUT /products/{id} */
     @PutMapping("/{id}")
-    public ResponseEntity<ProductDTO> update(@PathVariable Long id, @RequestBody ProductDTO product) {
+    public ResponseEntity<ApiResponse<ProductDTO>> update(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductDTO product
+    ) {
         ProductDTO updated = productService.updateProduct(id, product);
-        return (updated != null) ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
+        if (updated == null) {
+            throw new ResourceNotFoundException("Cannot update. Product not found with id " + id);
+        }
+        return ResponseEntity.ok(ApiResponse.success("Product updated successfully", updated));
     }
 
-    /** DELETE: DELETE /products/{id} */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        ProductDTO existing = productService.getProductById(id);
+        if (existing == null) {
+            throw new ResourceNotFoundException("Cannot delete. Product not found with id " + id);
+        }
         productService.deleteProduct(id);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
+        return ResponseEntity.ok(ApiResponse.success("Product deleted successfully", null));
     }
 }
