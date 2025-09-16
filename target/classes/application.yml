@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: dev   # default chạy môi trường dev
+    active: prod   # default chạy môi trường dev
 
 app:
   name: Online Shop API

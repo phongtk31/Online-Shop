@@ -1,53 +1,73 @@
 package com.shop.onlineshop.service;
 
 import com.shop.onlineshop.dto.ProductDTO;
+import com.shop.onlineshop.entity.ProductEntity;
+import com.shop.onlineshop.exception.ResourceNotFoundException;
+import com.shop.onlineshop.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
- * @Service: đăng ký bean tầng service vào Spring IoC container.
- * Dùng ConcurrentHashMap để tránh race-condition khi nhiều request cùng truy cập.
+ * Service chuyển từ in-memory sang JPA
  */
 @Service
 public class ProductServiceImpl implements ProductService {
 
-    private final ConcurrentHashMap<Long, ProductDTO> productStore = new ConcurrentHashMap<>();
-    private final AtomicLong idCounter = new AtomicLong(1);
+    private final ProductRepository productRepository;
+
+    public ProductServiceImpl(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
+
+    private ProductDTO mapToDTO(ProductEntity entity) {
+        return new ProductDTO(entity.getId(), entity.getName(), entity.getPrice(), entity.getQuantity());
+    }
+
+    private ProductEntity mapToEntity(ProductDTO dto) {
+        return new ProductEntity(dto.getId(), dto.getName(), dto.getPrice(), dto.getQuantity());
+    }
 
     @Override
     public ProductDTO createProduct(ProductDTO product) {
-        long id = idCounter.getAndIncrement();
-        product.setId(id);                 // gắn id sinh tự động
-        productStore.put(id, product);     // lưu vào "RAM"
-        return product;
+        ProductEntity entity = mapToEntity(product);
+        ProductEntity saved = productRepository.save(entity);
+        return mapToDTO(saved);
     }
 
     @Override
     public List<ProductDTO> getAllProducts() {
-        return new ArrayList<>(productStore.values());
+        return productRepository.findAll()
+                .stream().map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
     public ProductDTO getProductById(Long id) {
-        return productStore.get(id);       // trả null nếu không có
+        ProductEntity entity = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + id));
+        return mapToDTO(entity);
     }
 
     @Override
     public ProductDTO updateProduct(Long id, ProductDTO product) {
-        if (!productStore.containsKey(id)) {
-            return null;
-        }
-        product.setId(id);
-        productStore.put(id, product);     // ghi đè
-        return product;
+        ProductEntity existing = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cannot update. Product not found with id " + id));
+
+        existing.setName(product.getName());
+        existing.setPrice(product.getPrice());
+        existing.setQuantity(product.getQuantity());
+
+        ProductEntity updated = productRepository.save(existing);
+        return mapToDTO(updated);
     }
 
     @Override
     public void deleteProduct(Long id) {
-        productStore.remove(id);
+        if (!productRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Cannot delete. Product not found with id " + id);
+        }
+        productRepository.deleteById(id);
     }
 }
