@@ -1,14 +1,13 @@
 package com.shop.onlineshop.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * @Configuration: class config Spring
@@ -18,37 +17,33 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
+    private final JwtAuthenticationFilter jwtFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
+        this.jwtFilter = jwtFilter;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable()) // tắt CSRF cho REST API
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll() // cho phép public
+                        .requestMatchers("/users/**").hasRole("ADMIN")   // chỉ ADMIN
+                        .requestMatchers("/products/**").hasAnyRole("ADMIN","USER")
                         .requestMatchers("/info/**").permitAll() // cho phép public
                         .anyRequest().authenticated()           // các request khác phải login
                 )
-                .httpBasic(Customizer.withDefaults()); // dùng Basic Auth (username/password)
-
+                // 👇 Thêm dòng này để trả về 401 nếu không có/không đúng token
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(
+                                (req, res, e) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
+                        )
+                );
+                http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
-
-    /**
-     * UserDetailsService: nơi Spring Security tìm user
-     * Ở đây tạo user in-memory để test
-     */
     @Bean
-    public UserDetailsService users() {
-        UserDetails user = User.withDefaultPasswordEncoder()
-                .username("user")
-                .password("123")
-                .roles("USER")
-                .build();
-
-        UserDetails admin = User.withDefaultPasswordEncoder()
-                .username("admin")
-                .password("123")
-                .roles("ADMIN")
-                .build();
-
-        return new InMemoryUserDetailsManager(user, admin);
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

@@ -5,6 +5,7 @@ import com.shop.onlineshop.entity.RoleEntity;
 import com.shop.onlineshop.entity.UserEntity;
 import com.shop.onlineshop.repository.RoleRepository;
 import com.shop.onlineshop.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,10 +17,12 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository) {
+    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     private UserDTO mapToDTO(UserEntity entity) {
@@ -36,7 +39,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO createUser(String username, String password, Set<String> roleNames) {
         UserEntity user = new UserEntity();
         user.setUsername(username);
-        user.setPassword(password); // Day 7 sẽ mã hóa password
+        user.setPassword(passwordEncoder.encode(password));
 
         Set<RoleEntity> roles = roleNames.stream()
                 .map(name -> roleRepository.findByName(name)
