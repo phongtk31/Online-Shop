@@ -1,8 +1,9 @@
 app:
   security:
     jwt:
-      secret: "change-me-to-a-very-long-random-secret-at-least-32-characters"
-      expiration-ms: 3600000  # 1h
+      secret: "CHANGE_ME_TO_A_LONG_RANDOM_SECRET_KEY"
+      access-expiration-ms: 900000        # 15 phút
+      refresh-expiration-ms: 604800000    # 7 ngày
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/onlineshop
@@ -17,3 +18,9 @@ spring:
         default_schema: shopdb   # 👈 chỉ định schema mặc định
     show-sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+    # (Day 10 sẽ dùng)
+    springdoc:
+      api-docs:
+        enabled: true
+      swagger-ui:
+        path: /swagger-ui.html

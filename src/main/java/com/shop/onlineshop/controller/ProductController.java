@@ -5,6 +5,7 @@ import com.shop.onlineshop.exception.ApiResponse;
 import com.shop.onlineshop.exception.ResourceNotFoundException;
 import com.shop.onlineshop.service.ProductService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -19,7 +20,7 @@ public class ProductController {
     public ProductController(ProductService productService) {
         this.productService = productService;
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<ProductDTO>> create(@Valid @RequestBody ProductDTO product) {
         ProductDTO created = productService.createProduct(product);

@@ -3,66 +3,72 @@ package com.shop.onlineshop.config;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
 @Component
 public class JwtUtil {
+
     private final SecretKey key;
-    private final long expirationMs;
+    private final long accessExpirationMs;
+    private final long refreshExpirationMs;
+
     public JwtUtil(
             @Value("${app.security.jwt.secret}") String secret,
-            @Value("${app.security.jwt.expiration-ms}") long expirationMs
+            @Value("${app.security.jwt.access-expiration-ms}") long accessExpirationMs,
+            @Value("${app.security.jwt.refresh-expiration-ms}") long refreshExpirationMs
     ) {
-        // HS256 yêu cầu key đủ dài; không nên dùng secret ngắn
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.expirationMs = expirationMs;
+        this.accessExpirationMs = accessExpirationMs;
+        this.refreshExpirationMs = refreshExpirationMs;
     }
 
-    public String generateToken(String username, List<String> roles) {
-        long now = System.currentTimeMillis();
+    // Generate Access Token (15 phút)
+    public String generateAccessToken(UserDetails userDetails) {
         return Jwts.builder()
-                .setHeaderParam(Header.TYPE, Header.JWT_TYPE)
-                .setClaims(Map.of("roles", roles))
-                .setSubject(username)
-                .setIssuedAt(new Date(now))
-                .setExpiration(new Date(now + expirationMs))
+                .setSubject(userDetails.getUsername())
+                .claim("roles", userDetails.getAuthorities()) // thêm roles
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + accessExpirationMs))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    // Generate Refresh Token (7 ngày)
+    public String generateRefreshToken(UserDetails userDetails) {
+        return Jwts.builder()
+                .setSubject(userDetails.getUsername())
+                .claim("type", "refresh") // để phân biệt với access
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + refreshExpirationMs))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public String extractUsername(String token) {
-        return getClaims(token).getSubject();
+        return extractAllClaims(token).getSubject();
     }
 
-    public boolean isTokenValid(String token) {
-        try {
-            getClaims(token); // parse được và chưa hết hạn
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
-        }
-    }
-    public List<String> extractRoles(String token) {
-        Claims claims = getClaims(token);
-        Object raw = claims.get("roles");
-        if (raw instanceof List<?> list) {
-            // chuyển về List<String>
-            return list.stream().map(Object::toString).toList();
-        }
-        return List.of();
-    }
-    private Claims getClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        final String username = extractUsername(token);
+        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+
+    private boolean isTokenExpired(String token) {
+        Date expiration = extractAllClaims(token).getExpiration();
+        return expiration.before(new Date());
     }
 }

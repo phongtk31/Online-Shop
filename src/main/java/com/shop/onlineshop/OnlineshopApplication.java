@@ -21,27 +21,5 @@ public class OnlineshopApplication {
 	public static void main(String[] args) {
         SpringApplication app = new SpringApplication(OnlineshopApplication.class);
         app.run(args);
-	}
-    // 👇 Seed user admin mặc định khi DB trống
-    @Bean
-    CommandLineRunner init(UserRepository userRepository,
-                           RoleRepository roleRepository,
-                           PasswordEncoder encoder) {
-        return args -> {
-            if (userRepository.count() == 0) {
-                // tạo role ADMIN nếu chưa có
-                RoleEntity roleAdmin = roleRepository.findByName("ROLE_ADMIN")
-                        .orElseGet(() -> roleRepository.save(new RoleEntity(null, "ROLE_ADMIN")));
-
-                // tạo user admin mặc định
-                UserEntity admin = new UserEntity();
-                admin.setUsername("admin");
-                admin.setPassword(encoder.encode("123456"));
-                admin.setRoles(Set.of(roleAdmin));
-
-                userRepository.save(admin);
-                System.out.println("✅ Default ADMIN user created: admin / 123456");
-            }
-        };
     }
 }

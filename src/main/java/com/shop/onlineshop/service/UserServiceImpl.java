@@ -1,10 +1,12 @@
-package com.shop.onlineshop.service;
+package com.shop.onlineshop.service.impl;
 
 import com.shop.onlineshop.dto.UserDTO;
 import com.shop.onlineshop.entity.RoleEntity;
 import com.shop.onlineshop.entity.UserEntity;
 import com.shop.onlineshop.repository.RoleRepository;
 import com.shop.onlineshop.repository.UserRepository;
+import com.shop.onlineshop.service.UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -13,49 +15,44 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
-
-    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-    private UserDTO mapToDTO(UserEntity entity) {
-        return new UserDTO(
-                entity.getId(),
-                entity.getUsername(),
-                entity.getRoles().stream()
-                        .map(RoleEntity::getName)
-                        .collect(Collectors.toSet())
-        );
-    }
+    private final UserRepository userRepo;
+    private final RoleRepository roleRepo;
+    private final PasswordEncoder encoder;
 
     @Override
-    public UserDTO createUser(String username, String password, Set<String> roleNames) {
-        UserEntity user = new UserEntity();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));
-
-        Set<RoleEntity> roles = roleNames.stream()
-                .map(name -> roleRepository.findByName(name)
-                        .orElseGet(() -> roleRepository.save(new RoleEntity(null, name))))
+    public UserDTO createUser(String username, String rawPassword, Set<String> roles) {
+        if (userRepo.existsByUsername(username)) {
+            throw new IllegalArgumentException("Username already exists");
+        }
+        Set<RoleEntity> roleEntities = roles.stream()
+                .map(name -> roleRepo.findByName(name)
+                        .orElseGet(() -> roleRepo.save(new RoleEntity(null, name))))
                 .collect(Collectors.toSet());
 
-        user.setRoles(roles);
-        UserEntity saved = userRepository.save(user);
-        return mapToDTO(saved);
+        UserEntity u = UserEntity.builder()
+                .username(username)
+                .password(encoder.encode(rawPassword))
+                .enabled(true)
+                .roles(roleEntities)
+                .build();
+        return toDTO(userRepo.save(u));
     }
 
     @Override
     public List<UserDTO> getAllUsers() {
-        return userRepository.findAll()
-                .stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+        return userRepo.findAll().stream().map(this::toDTO).toList();
+    }
+
+    private UserDTO toDTO(UserEntity u) {
+        return UserDTO.builder()
+                .id(u.getId())
+                .username(u.getUsername())
+                .email(u.getEmail())
+                .enabled(u.isEnabled())
+                .roles(u.getRoles().stream().map(RoleEntity::getName).collect(Collectors.toSet()))
+                .build();
     }
 }
