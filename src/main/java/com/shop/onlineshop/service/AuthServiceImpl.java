@@ -10,8 +10,8 @@ import com.shop.onlineshop.entity.RoleEntity;
 import com.shop.onlineshop.entity.UserEntity;
 import com.shop.onlineshop.repository.RoleRepository;
 import com.shop.onlineshop.repository.UserRepository;
-import com.shop.onlineshop.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {

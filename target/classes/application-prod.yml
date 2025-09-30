@@ -24,3 +24,12 @@ spring:
         enabled: true
       swagger-ui:
         path: /swagger-ui.html
+logging:
+  level:
+    root: INFO
+    com.shop.onlineshop: DEBUG  # chỉ bật DEBUG cho package của bạn
+  file:
+    name: logs/onlineshop.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

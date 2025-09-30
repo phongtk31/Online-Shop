@@ -4,6 +4,7 @@ import com.shop.onlineshop.dto.ProductDTO;
 import com.shop.onlineshop.entity.ProductEntity;
 import com.shop.onlineshop.exception.ResourceNotFoundException;
 import com.shop.onlineshop.repository.ProductRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 /**
  * Service chuyển từ in-memory sang JPA
  */
+@Slf4j
 @Service
 public class ProductServiceImpl implements ProductService {
 

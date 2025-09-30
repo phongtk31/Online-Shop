@@ -144,7 +144,7 @@ class ProductServiceTest {
     // ✅ Test delete product (không tìm thấy)
     @Test
     void testDeleteProduct_NotFound() {
-        when(productRepository.existsById(99L)).thenReturn(false); 
+        when(productRepository.existsById(99L)).thenReturn(false);
 
         assertThrows(ResourceNotFoundException.class,
                 () -> productService.deleteProduct(99L));
