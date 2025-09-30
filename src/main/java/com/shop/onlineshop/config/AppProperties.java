@@ -1,12 +1,17 @@
 package com.shop.onlineshop.config;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+@Setter
+@Getter
 @Component
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
 
+    // getters & setters
     private String name;
     private String version;
     private Contact contact = new Contact();
@@ -22,13 +27,4 @@ public class AppProperties {
         }
     }
 
-    // getters & setters
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getVersion() { return version; }
-    public void setVersion(String version) { this.version = version; }
-
-    public Contact getContact() { return contact; }
-    public void setContact(Contact contact) { this.contact = contact; }
 }

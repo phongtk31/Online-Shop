@@ -8,4 +8,6 @@ import java.util.Set;
 public interface UserService {
     UserDTO createUser(String username, String password, Set<String> roles);
     List<UserDTO> getAllUsers();
+    UserDTO getUserById(Long id);          // 👈 thêm
+    UserDTO getCurrentUser();
 }
